@@ -4,11 +4,14 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-class GetInformationClient():
+class GetInformationClass():
     def get_quote(self):
-        url = 'http://api.forismatic.com/api/1.0/?method=getQuote&format=json&\
-            lang=ru'
-        response = requests.get(url)
+        url = 'http://api.forismatic.com/api/1.0/'
+        params = {
+            'method': 'getQuote',
+            'format': 'json',
+        }
+        response = requests.get(url=url, params=params)
         if response.status_code == 200:
             data = response.json()
             quote = data["quoteText"]
@@ -42,10 +45,13 @@ class GetInformationClient():
             'thunderstorm-with-rain': 'дождь с грозой',
             'thunderstorm-with-hail': 'гроза с градом'
         }
-        url = "https://api.weather.yandex.ru/v2/informers?lat=54.899554&\
-            lon=83.082802"
+        url = "https://api.weather.yandex.ru/v2/informers"
+        params = {
+            'lat': '54.899554',
+            'lon': '83.082802'
+        }
         headers = {"X-Yandex-API-Key": os.getenv('X_YANDEX_API_KEY')}
-        response = requests.get(url=url, headers=headers)
+        response = requests.get(url=url, headers=headers, params=params)
         if response.status_code == 200:
             data = response.json()
             temp_avg = data['forecast']['parts'][0]['temp_avg']
@@ -71,6 +77,26 @@ class GetInformationClient():
         else:
             return None
 
+    def get_random_film(self):
+        url = 'https://api.kinopoisk.dev/v1.3/movie/random'
+        headers = {
+            'accept': 'application/json',
+            'X-API-KEY': os.getenv('SECRET_KEY_API_KINOPOISK')
+        }
+        response = requests.get(url=url, headers=headers)
+        if response.status_code == 200:
+            data = response.json()
+            title = data['name']
+            description = data['description']
+            genres = [i['name'] for i in data['genres']]
+            year = data['year']
+            rating = data['rating']['kp']
+            return {
+                'title': title,
+                'description': description,
+                'genres': genres,
+                'year': year,
+                'rating': rating
+            }
 
-
-print(GetInformationClient().get_weather())
+print(GetInformationClass().get_weather())
