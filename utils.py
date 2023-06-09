@@ -1,4 +1,5 @@
 import requests
+import xmltodict
 import os
 from dotenv import load_dotenv
 
@@ -98,5 +99,18 @@ class GetInformationClass():
                 'year': year,
                 'rating': rating
             }
+        else:
+            return None
 
-print(GetInformationClass().get_weather())
+    def get_horoscope(self, zodiac):
+        url = 'https://ignio.com/r/export/utf/xml/daily/com.xml'
+        response = requests.get(url)
+        if response.status_code == 200:
+            xml_string = response.content.decode('utf-8')
+            data_dict = xmltodict.parse(xml_string)
+            return data_dict['horo'][zodiac]['today']
+        else:
+            return None
+
+
+print(GetInformationClass().get_horoscope('aries'))
