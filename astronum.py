@@ -1,5 +1,3 @@
-from utils import standardize_birthdate
-
 NAME_NUMBERS_DICT = {
     1: 'Лидерство, инициатива, решительность, энергия, независимость, уверенность в себе.',
     2: 'Дипломатичность, тактичность, чувствительность, гармония, склонность к компромиссам.',
@@ -86,7 +84,7 @@ def get_birthdate_number(birthdate):
     '''Функция для расчета числа по дате рождения'''
     # Разбиваем дату на отдельные числа (год, месяц, день)
     day, month, year = [
-        int(part) for part in birthdate.strftime('%d.%m.%Y').split(".")
+        int(part) for part in birthdate.split(".")
     ]
     # Вычисляем сумму чисел для года, месяца и дня рождения
     date_sum = sum([int(digit) for digit in str(day)]) + \
@@ -103,9 +101,7 @@ def get_birthdate_number(birthdate):
 # print(result)
 
 def get_zodiac(birthdate):
-    birthdate = standardize_birthdate(birthdate).strftime('%d.%m.%Y')
     day, month, _ = [int(i) for i in birthdate.split('.')]
-    print(day, month)
     if month == 1:
         if day < 21:
             return 'Capricorn'
