@@ -4,7 +4,7 @@ from dotenv import load_dotenv
 import sqlite3
 import schedule
 import datetime
-import threading
+from utils import validate_city
 
 load_dotenv()
 
@@ -16,7 +16,7 @@ cursor = connect.cursor()
 
 # Создание таблицы users, если она не существует
 cursor.execute('''CREATE TABLE IF NOT EXISTS users
-             (id INTEGER PRIMARY KEY, name TEXT, birthday TEXT)''')
+             (id INTEGER PRIMARY KEY, name TEXT, city TEXT, birthday TEXT)''')
 
 connect.commit()
 
@@ -30,8 +30,8 @@ def start(update, context):
         if row:
             # пользователь уже есть в базе данных
             name, birthday = row[1], row[2]
-            update.message.reply_text(f'Привет, {name}! Рад, что ты снова с '
-                                      'нами.')
+            update.message.reply_text(f'<b>Привет,</b> <i>{name}</i>! Рад, что ты снова с '
+                                      'нами.😊', parse_mode='HTML')
         else:
             # пользователь новый, запускаем диалоговую форму для ввода ФИО и даты рождения
             update.message.reply_text('Привет! Как тебя зовут?')
@@ -40,11 +40,24 @@ def start(update, context):
 def get_name(update, context):
     global name
     name = update.message.text
-    update.message.reply_text(f'Приятно познакомиться, {name}! Когда ты '
-                              'родился(ась)? (в формате ДД.ММ.ГГГГ)')
-    return 'get_birthday'
+    update.message.reply_text(f'Приятно познакомиться, {name}! Из какого ты города?')
+    return 'get_city'
 
-lock = threading.Lock()
+def get_city(update, context):
+    global city
+    city = update.message.text
+    try:
+        # Ищем такой город на карте:)
+        city = validate_city(city)
+    except ValueError:
+        # Если не получается, выводим сообщение об ошибке и переспрашиваем ввод города
+        update.message.reply_text('Не нашел такой город. Пожалуйста, введи '
+                                  'существующий город')
+        return 'get_city'
+    else:
+        update.message.reply_text(f'Приятно познакомиться, {name} из {city}! '
+                              'Когда ты родился(ась)? (в формате ДД.ММ.ГГГГ)')
+        return 'get_birthday'
 
 # в функции get_birthday() захватываем блокировку перед использованием cursor
 def get_birthday(update, context):
@@ -63,8 +76,9 @@ def get_birthday(update, context):
         conn = sqlite3.connect('users.db')
         with conn:
             cursor = conn.cursor()
-            cursor.execute("INSERT INTO users (id, name, birthday) VALUES \
-                           (?, ?, ?)", (user_id, name, birthday))
+            cursor.execute("INSERT INTO users (id, name, city, birthday) \
+                           VALUES (?, ?, ?, ?)",
+                           (user_id, name, city, birthday))
         update.message.reply_text(f'Отлично, {name}! Ты родился(ась) '
                                   f'{birthday.strftime("%d.%m.%Y")}.')
         return telegram.ext.ConversationHandler.END
@@ -75,8 +89,10 @@ conv_handler = telegram.ext.ConversationHandler(
     states={
         'get_name': [telegram.ext.MessageHandler(telegram.ext.Filters.text,
                                                  get_name)],
+        'get_city': [telegram.ext.MessageHandler(telegram.ext.Filters.text,
+                                                 get_city)],
         'get_birthday': [telegram.ext.MessageHandler(telegram.ext.Filters.text,
-        get_birthday)],
+                                                     get_birthday)],
     },
     fallbacks=[]
 )
