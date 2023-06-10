@@ -20,7 +20,7 @@ def get_quote():
         quote = data["quoteText"]
         author = data["quoteAuthor"]
         return {
-            'quote': quote,
+            'quote': quote.strip(),
             'author': author
         }
     else:
@@ -28,25 +28,25 @@ def get_quote():
     
 def get_weather(city):
     CONDITION_DICT = {
-        'clear': 'ясно',
-        'partly-cloudy': 'малооблачно',
-        'cloudy': 'облачно с прояснениями',
-        'overcast': 'пасмурно',
-        'drizzle': 'морось',
-        'light-rain': 'небольшой дождь',
-        'rain': 'дождь',
-        'moderate-rain': 'умеренно сильный дождь',
-        'heavy-rain': 'сильный дождь',
-        'continuous-heavy-rain': 'длительный сильный дождь',
-        'showers': 'ливень',
-        'wet-snow': 'дождь со снегом',
-        'light-snow': 'небольшой снег',
-        'snow': 'снег',
-        'snow-showers': 'снегопад',
-        'hail': 'град',
-        'thunderstorm': 'гроза',
-        'thunderstorm-with-rain': 'дождь с грозой',
-        'thunderstorm-with-hail': 'гроза с градом'
+        'clear': '☀️ ясно',
+        'partly-cloudy': '⛅ малооблачно',
+        'cloudy': '⛅ облачно с прояснениями',
+        'overcast': '☁️ пасмурно',
+        'drizzle': '🌧️ морось',
+        'light-rain': '🌧️ небольшой дождь',
+        'rain': '🌧️ дождь',
+        'moderate-rain': '🌧️ умеренно сильный дождь',
+        'heavy-rain': '🌧️ сильный дождь',
+        'continuous-heavy-rain': '🌧️ длительный сильный дождь',
+        'showers': '🌧️ ливень',
+        'wet-snow': '🌧️🌨️ дождь со снегом',
+        'light-snow': '🌨️ небольшой снег',
+        'snow': '🌨️ снег',
+        'snow-showers': '🌨️ снегопад',
+        'hail': '🌧️ град',
+        'thunderstorm': '⛈️ гроза',
+        'thunderstorm-with-rain': '⛈️ дождь с грозой',
+        'thunderstorm-with-hail': '⛈️ гроза с градом'
     }
     geolocator = Nominatim(user_agent="my_app")
     location = geolocator.geocode(city)
@@ -96,18 +96,20 @@ def get_random_film():
         genres = [i['name'] for i in data['genres']]
         year = data['year']
         rating = data['rating']['kp']
+        link = f'https://www.kinopoisk.ru/film/{data["id"]}'
         return {
             'title': title,
             'description': description,
             'genres': genres,
             'year': year,
-            'rating': rating
+            'rating': rating,
+            'link': link
         }
     else:
         return None
 
-def get_horoscope(birthdate):
-    zodiac = astronum.get_zodiac(birthdate).lower()
+def get_horoscope(zodiac):
+    zodiac = zodiac.lower()
     url = 'https://ignio.com/r/export/utf/xml/daily/com.xml'
     response = requests.get(url)
     if response.status_code == 200:

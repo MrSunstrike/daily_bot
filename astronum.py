@@ -58,6 +58,21 @@ BIRTH_NUMBERS_DICT = {
     },
 }
 
+ZODIAC_DICT = {
+    'Capricorn': '♑️ Козерог',
+    'Aquarius': '♒️ Водолей',
+    'Pisces': '♓️ Рыбы',
+    'Aries': '♈️ Овен',
+    'Taurus': '♉️ Телец',
+    'Gemini': '♊️ Близнецы',
+    'Cancer': '♋️ Рак',
+    'Leo': '♌️ Лев',
+    'Virgo': '♍️ Дева',
+    'Libra': '♎️ Весы',
+    'Scorpio': '♏️ Скорпион',
+    'Sagittarius': '♐️ Стрелец'
+}
+
 
 def get_name_number(name):
     '''Функция для рассчета числа по ФИО'''
@@ -95,8 +110,6 @@ def get_birthdate_number(birthdate):
         date_sum = sum(int(digit) for digit in str(date_sum))
     return date_sum
 
-
-# Пример использования
 # result = get_psychomatrix("Никитин Михаил Олегович", '6 янв 95')
 # print(result)
 

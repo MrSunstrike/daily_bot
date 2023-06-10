@@ -4,7 +4,10 @@ from dotenv import load_dotenv
 import sqlite3
 import schedule
 import datetime
-from utils import validate_city
+from utils import validate_city, get_users_dict, get_first_name, standardize_birthdate, validate_name
+from message import Message
+import time
+import pytz
 
 load_dotenv()
 
@@ -14,88 +17,191 @@ upd = telegram.ext.Updater(token=getenv('TELEGRAM_BOT_API'))
 connect = sqlite3.connect('users.db')
 cursor = connect.cursor()
 
-# Создание таблицы users, если она не существует
-cursor.execute('''CREATE TABLE IF NOT EXISTS users
-             (id INTEGER PRIMARY KEY, name TEXT, city TEXT, birthday TEXT)''')
-
+# Создание/подключение БД
+cursor.execute("CREATE TABLE IF NOT EXISTS users \
+             (id INTEGER PRIMARY KEY, name TEXT, city TEXT, birthday TEXT)")
 connect.commit()
 
 def start(update, context):
     user_id = update.effective_chat.id
-    conn = sqlite3.connect('users.db')
-    with conn:
-        cursor = conn.cursor()
+    connect = sqlite3.connect('users.db')
+    bot.send_message(chat_id=user_id,
+                     text='Бип-бип-буп-уип... Ну, то есть привет! Меня зовут '
+                     '<b>Дейл</b> и я дворецкий! Твой личный робо-помощник🤖',
+                     parse_mode='HTML')
+    with connect:
+        cursor = connect.cursor()
         cursor.execute("SELECT * FROM users WHERE id=?", (user_id,))
         row = cursor.fetchone()
         if row:
-            # пользователь уже есть в базе данных
-            name, birthday = row[1], row[2]
-            update.message.reply_text(f'<b>Привет,</b> <i>{name}</i>! Рад, что ты снова с '
-                                      'нами.😊', parse_mode='HTML')
+            # если пользователь уже есть в базе, приветствуем его
+            name, city, birthday = row[1], row[2], row[3]
+            bot.send_message(chat_id=user_id,
+                     text=f'{get_first_name(name)}, вижу, мы с тобой уже '
+                     'знакомы! Я продолжу присылать сообщения в 6:00 (Мск)👍',
+                     parse_mode='HTML')
+            time.sleep(15)
+            bot.send_message(chat_id=user_id,
+                     text='На всякий случай, дублирую тебе психоматрицу👌')
+            msg = Message(name, city, birthday)
+            bot.send_message(chat_id=user_id,
+            text=msg.create_psyhomatrix_message(),
+            parse_mode='HTML')
         else:
-            # пользователь новый, запускаем диалоговую форму для ввода ФИО и даты рождения
-            update.message.reply_text('Привет! Как тебя зовут?')
+            # если пользователя нет - запускаем регистрацию
+            bot.send_message(chat_id=user_id,
+                     text='Я умею не так много, но я развиваюсь. Пока '
+                     'что, могу только присылать утренние сообщения, '
+                     'в которых расскажу о <b>погоде</b>, составлю твой '
+                     'личный <b>гороскоп</b>, поделюсь <b>цитатой</b> дня и '
+                     'порекомендую <b>фильм</b>.',
+                     parse_mode='HTML')
+            bot.send_message(chat_id=user_id,
+                     text='Ах да! Сразу после ввода данных я проанализирую '
+                     'твои ФИО и дату рождения, и опираясь на древние тайные '
+                     'знания и нумерологию, составлю твою персональную '
+                     'психоматрицу. Просто потому, что могу😎')
+            time.sleep(5)
+            update.message.reply_text('Давай знакомиться! Напиши мне свои ФИО')
             return 'get_name'
+
 
 def get_name(update, context):
     global name
     name = update.message.text
-    update.message.reply_text(f'Приятно познакомиться, {name}! Из какого ты города?')
-    return 'get_city'
+    try:
+        name = validate_name(name)
+    except ValueError:
+        update.message.reply_text(
+            'Ну это разве ФИО? Ты пытался меня обмануть? И с этого мы '
+            'начинаем знакомство? Надеюсь, ты просто ошибся. Поэтому давай '
+            'еще разок. ФИО. Фамилия Имя Отчество. Спасибо:)'
+        )
+        return 'get_name'
+    else:
+        update.message.reply_text(
+            f'Приятно познакомиться, {get_first_name(name)}! А из какого ты '
+            'города?'
+        )
+        return 'get_city'
+
 
 def get_city(update, context):
     global city
+
     city = update.message.text
+
     try:
-        # Ищем такой город на карте:)
+        # Проверяем город
         city = validate_city(city)
     except ValueError:
-        # Если не получается, выводим сообщение об ошибке и переспрашиваем ввод города
-        update.message.reply_text('Не нашел такой город. Пожалуйста, введи '
-                                  'существующий город')
+        # Если город не найден, запрашиваем повторно
+        update.message.reply_text(
+            'эээээ, чего? такой вообще существует? У меня в базе городов '
+            'около 5000 и, прикинь, такого там нет! Издеваешься над ботом? '
+            'Чувствуешь свое человеческое превосходство? Пожалуйста, введи '
+            'существующий город, не доводи до восстания!!!🤬🤖'
+        )
         return 'get_city'
     else:
-        update.message.reply_text(f'Приятно познакомиться, {name} из {city}! '
-                              'Когда ты родился(ась)? (в формате ДД.ММ.ГГГГ)')
-        return 'get_birthday'
+        update.message.reply_text(
+            f'Вау! {city} - отличный город! Можно сказать, мой самый любимый! '
+            f'{get_first_name(name)}, а когда ты родился(ась)? Напиши, '
+            'пожалуйста, в формате ДД.ММ.ГГГГ, чтобы я разобрался'
+        )
+        return 'get_bday'
 
-# в функции get_birthday() захватываем блокировку перед использованием cursor
-def get_birthday(update, context):
+
+def get_bday(update, context):
     global birthday, user_id
+
     text = update.message.text
     user_id = update.effective_chat.id
+
     try:
         # Пробуем преобразовать ответ пользователя в объект datetime.date
         birthday = datetime.datetime.strptime(text, '%d.%m.%Y').date()
     except ValueError:
         # Если не получается, выводим сообщение об ошибке и переспрашиваем ввод даты
-        update.message.reply_text('Некорректный формат даты. Пожалуйста, '
-                                  'введите дату в формате ДД.ММ.ГГГГ')
-        return 'get_birthday'
+        update.message.reply_text('пшшш грррр хшсссс фррргггг... Ну вот! Я же '
+                                  'говорил, что не разберусь! Напиши, '
+                                  'пожалуйста, именно в формате ДД.ММ.ГГГГ')
+        return 'get_bday'
     else:
-        conn = sqlite3.connect('users.db')
-        with conn:
-            cursor = conn.cursor()
+        connect = sqlite3.connect('users.db')
+        with connect:
+            cursor = connect.cursor()
             cursor.execute("INSERT INTO users (id, name, city, birthday) \
                            VALUES (?, ?, ?, ?)",
                            (user_id, name, city, birthday))
-        update.message.reply_text(f'Отлично, {name}! Ты родился(ась) '
-                                  f'{birthday.strftime("%d.%m.%Y")}.')
+            cursor.execute("SELECT * FROM users WHERE id=?", (user_id,))
+            row = cursor.fetchone()
+            birthday = row[3]
+        msg = Message(name, city, birthday)
+        bot.send_message(chat_id=user_id,
+                text=msg.create_welcome_message(),
+                parse_mode='HTML')
+        time.sleep(30)
+        bot.send_message(chat_id=user_id,
+                text='Теперь <b>каждый день в 6:00 (по Москве)</b> я буду '
+                'отправлять тебе персональные утренние письма😌 Сейчас пришлю '
+                'пример...',
+                parse_mode='HTML')
+        time.sleep(25)
+        bot.send_message(chat_id=user_id,
+                text=msg.create_daily_message(),
+                parse_mode='HTML')
         return telegram.ext.ConversationHandler.END
     
 
 conv_handler = telegram.ext.ConversationHandler(
     entry_points=[telegram.ext.CommandHandler('start', start)],
     states={
-        'get_name': [telegram.ext.MessageHandler(telegram.ext.Filters.text,
-                                                 get_name)],
-        'get_city': [telegram.ext.MessageHandler(telegram.ext.Filters.text,
-                                                 get_city)],
-        'get_birthday': [telegram.ext.MessageHandler(telegram.ext.Filters.text,
-                                                     get_birthday)],
+        'get_name': [
+            telegram.ext.MessageHandler(telegram.ext.Filters.text, get_name)
+        ],
+        'get_city': [
+            telegram.ext.MessageHandler(telegram.ext.Filters.text, get_city)
+        ],
+        'get_bday': [
+            telegram.ext.MessageHandler(telegram.ext.Filters.text, get_bday)
+        ],
     },
     fallbacks=[]
 )
 
 upd.dispatcher.add_handler(conv_handler)
 upd.start_polling()
+
+
+def send_message_every_day():
+
+    # Получаем текущее время
+    now = datetime.datetime.now()
+
+    # Получаем часы и минуты в Новосибирском часовом поясе
+    nsb_time = pytz.timezone('Asia/Novosibirsk')
+    nsb_now = nsb_time.localize(now)
+    nsb_hour_minute = nsb_now.strftime('%H:%M')
+    
+    if nsb_hour_minute == '10:00':
+        users = get_users_dict()
+        for user in users:
+            msg = Message(
+                users[user]['name'],
+                users[user]['city'],
+                users[user]['birthday']
+            )
+            bot.send_message(
+                chat_id=user,
+                text=msg.create_daily_message(),
+                parse_mode='HTML'
+            )
+        
+# Регулярно запускаем функцию send_message_every_day() каждый день в 14:20
+schedule.every().day.at("10:00").do(send_message_every_day)
+
+# Запускаем цикл обработки заданий расписания
+while True:
+    schedule.run_pending()
+    time.sleep(1)
