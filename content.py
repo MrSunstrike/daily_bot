@@ -2,7 +2,8 @@ import requests
 import xmltodict
 import os
 from dotenv import load_dotenv
-import astronum
+import astronum, utils
+from geopy.geocoders import Nominatim
 
 load_dotenv()
 
@@ -25,7 +26,7 @@ def get_quote():
     else:
         return None
     
-def get_weather():
+def get_weather(city):
     CONDITION_DICT = {
         'clear': 'ясно',
         'partly-cloudy': 'малооблачно',
@@ -47,10 +48,12 @@ def get_weather():
         'thunderstorm-with-rain': 'дождь с грозой',
         'thunderstorm-with-hail': 'гроза с градом'
     }
+    geolocator = Nominatim(user_agent="my_app")
+    location = geolocator.geocode(city)
     url = "https://api.weather.yandex.ru/v2/informers"
     params = {
-        'lat': '54.899554',
-        'lon': '83.082802'
+        'lat': str(location.latitude),
+        'lon': str(location.longitude)
     }
     headers = {"X-Yandex-API-Key": os.getenv('X_YANDEX_API_KEY')}
     response = requests.get(url=url, headers=headers, params=params)
@@ -110,7 +113,6 @@ def get_horoscope(birthdate):
     if response.status_code == 200:
         xml_string = response.content.decode('utf-8')
         data_dict = xmltodict.parse(xml_string)
-        print()
         return data_dict['horo'][zodiac]['today']
     else:
         return None
@@ -118,7 +120,6 @@ def get_horoscope(birthdate):
 def get_psychomatrix(fullname: str, birthdate: str):
     '''Функция для рассчета психоматрицы'''
     name_num = astronum.get_name_number(fullname)
-    birthdate = astronum.standardize_birthdate(birthdate)
     date_num = astronum.get_birthdate_number(birthdate)
     # Возвращаем результат в виде словаря
     return {
