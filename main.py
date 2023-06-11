@@ -36,19 +36,36 @@ def start(update, context):
         if row:
             # если пользователь уже есть в базе, приветствуем его
             name, city, birthday = row[1], row[2], row[3]
-            bot.send_message(chat_id=user_id,
-                     text=f'{get_first_name(name)}, вижу, мы с тобой уже '
-                     'знакомы! Я продолжу присылать сообщения в 6:00 (Мск)👍',
-                     parse_mode='HTML')
-            time.sleep(15)
-            bot.send_message(chat_id=user_id,
-                     text='На всякий случай, дублирую тебе психоматрицу👌')
-            msg = Message(name, city, birthday)
-            bot.send_message(chat_id=user_id,
-            text=msg.create_psyhomatrix_message(),
-            parse_mode='HTML')
+            if not name:
+                bot.send_message(chat_id=user_id,
+                     text='Давай знакомиться! Напиши мне свои ФИО')
+                return 'get_name'
+            elif not city:
+                bot.send_message(chat_id=user_id,
+                     text=f'{get_first_name(name)}, а из какого ты города?')
+                return 'get_city'
+            elif not birthday:
+                bot.send_message(chat_id=user_id,
+                     text=f'{get_first_name(name)}, а когда ты родился(ась)? '
+                     'Напиши, пожалуйста, в формате ДД.ММ.ГГГГ, чтобы я '
+                     'разобрался')
+                return 'get_bday'
+            else:
+                bot.send_message(chat_id=user_id,
+                        text=f'{get_first_name(name)}, вижу, мы с тобой уже '
+                        'знакомы! Я продолжу присылать сообщения в 6:00 '
+                        '(Мск)👍',
+                        parse_mode='HTML')
+                time.sleep(15)
+                bot.send_message(chat_id=user_id,
+                        text='На всякий случай, дублирую тебе психоматрицу👌')
+                msg = Message(name, city, birthday)
+                bot.send_message(chat_id=user_id,
+                text=msg.create_psyhomatrix_message(),
+                parse_mode='HTML')
         else:
             # если пользователя нет - запускаем регистрацию
+            cursor.execute("INSERT INTO users (id) VALUES (?)", (user_id,))
             bot.send_message(chat_id=user_id,
                      text='Я умею не так много, но я развиваюсь. Пока '
                      'что, могу только присылать утренние сообщения, '
@@ -67,7 +84,7 @@ def start(update, context):
 
 
 def get_name(update, context):
-    global name
+    user_id = update.effective_chat.id
     name = update.message.text
     try:
         name = validate_name(name)
@@ -79,6 +96,10 @@ def get_name(update, context):
         )
         return 'get_name'
     else:
+        with sqlite3.connect('users.db') as connect:
+            cursor = connect.cursor()
+            cursor.execute("UPDATE users SET name = ? WHERE id = ?",
+                           (name, user_id))
         update.message.reply_text(
             f'Приятно познакомиться, {get_first_name(name)}! А из какого ты '
             'города?'
@@ -87,10 +108,8 @@ def get_name(update, context):
 
 
 def get_city(update, context):
-    global city
-
+    user_id = update.effective_chat.id
     city = update.message.text
-
     try:
         # Проверяем город
         city = validate_city(city)
@@ -104,6 +123,13 @@ def get_city(update, context):
         )
         return 'get_city'
     else:
+        with sqlite3.connect('users.db') as connect:
+            cursor = connect.cursor()
+            cursor.execute("UPDATE users SET city = ? WHERE id = ?",
+                           (city, user_id))
+            cursor.execute("SELECT * FROM users WHERE id=?", (user_id,))
+            row = cursor.fetchone()
+            name = row[1]
         update.message.reply_text(
             f'Вау! {city} - отличный город! Можно сказать, мой самый любимый! '
             f'{get_first_name(name)}, а когда ты родился(ась)? Напиши, '
@@ -113,8 +139,6 @@ def get_city(update, context):
 
 
 def get_bday(update, context):
-    global birthday, user_id
-
     text = update.message.text
     user_id = update.effective_chat.id
 
@@ -123,35 +147,41 @@ def get_bday(update, context):
         birthday = datetime.datetime.strptime(text, '%d.%m.%Y').date()
     except ValueError:
         # Если не получается, выводим сообщение об ошибке и переспрашиваем ввод даты
-        update.message.reply_text('пшшш грррр хшсссс фррргггг... Ну вот! Я же '
-                                  'говорил, что не разберусь! Напиши, '
-                                  'пожалуйста, именно в формате ДД.ММ.ГГГГ')
+        update.message.reply_text(
+            'пшшш грррр хшсссс фррргггг... Ну вот! Я же говорил, что не '
+            'разберусь! Напиши, пожалуйста, именно в формате ДД.ММ.ГГГГ'
+        )
         return 'get_bday'
     else:
-        connect = sqlite3.connect('users.db')
-        with connect:
-            cursor = connect.cursor()
-            cursor.execute("INSERT INTO users (id, name, city, birthday) \
-                           VALUES (?, ?, ?, ?)",
-                           (user_id, name, city, birthday))
-            cursor.execute("SELECT * FROM users WHERE id=?", (user_id,))
-            row = cursor.fetchone()
-            birthday = row[3]
-        msg = Message(name, city, birthday)
-        bot.send_message(chat_id=user_id,
-                text=msg.create_welcome_message(),
-                parse_mode='HTML')
-        time.sleep(30)
-        bot.send_message(chat_id=user_id,
-                text='Теперь <b>каждый день в 6:00 (по Москве)</b> я буду '
-                'отправлять тебе персональные утренние письма😌 Сейчас пришлю '
-                'пример...',
-                parse_mode='HTML')
-        time.sleep(25)
-        bot.send_message(chat_id=user_id,
-                text=msg.create_daily_message(),
-                parse_mode='HTML')
-        return telegram.ext.ConversationHandler.END
+        if birthday > datetime.datetime.now().date():
+            update.message.reply_text(
+                'Прости, но ты точно не мог родиться в будущем.. Это даже '
+                'боту понятно! Введи, пожалуйста, корректные данные'
+            )
+            return 'get_bday'
+        else:
+            with sqlite3.connect('users.db') as connect:
+                cursor = connect.cursor()
+                cursor.execute("UPDATE users SET birthday = ? WHERE id = ?",
+                            (birthday, user_id))
+                cursor.execute("SELECT * FROM users WHERE id=?", (user_id,))
+                row = cursor.fetchone()
+                name, city, birthday = row[1], row[2], row[3]
+            msg = Message(name, city, birthday)
+            bot.send_message(chat_id=user_id,
+                    text=msg.create_welcome_message(),
+                    parse_mode='HTML')
+            time.sleep(30)
+            bot.send_message(chat_id=user_id,
+                    text='Теперь <b>каждый день в 6:00 (по Москве)</b> я буду '
+                    'отправлять тебе персональные утренние письма😌 Сейчас '
+                    'пришлю пример...',
+                    parse_mode='HTML')
+            time.sleep(25)
+            bot.send_message(chat_id=user_id,
+                    text=msg.create_daily_message(),
+                    parse_mode='HTML')
+            return telegram.ext.ConversationHandler.END
     
 
 conv_handler = telegram.ext.ConversationHandler(

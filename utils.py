@@ -2,6 +2,8 @@ import dateparser
 from geopy.geocoders import Nominatim
 import re
 import sqlite3
+from pymystem3 import Mystem
+
 
 def standardize_birthdate(date):
     '''Функция стандартизации даты рождения'''
@@ -12,15 +14,20 @@ def standardize_birthdate(date):
     return formatted_date
 
 def validate_city(city):
-    if re.search('\d', city):
-        raise ValueError
-    else:
-        geolocator = Nominatim(user_agent="my_app")
-        location = geolocator.geocode(city)
-        if location == None:
-            raise ValueError
+    m = Mystem()
+    analysis = m.analyze(city)
+    for word_info in analysis:
+        if 'analysis' in word_info and word_info['analysis']:
+            tags = word_info['analysis'][0]['gr']
+            if 'гео' in tags:
+                geolocator = Nominatim(user_agent="my_app")
+                location = geolocator.geocode(city)
+                if location == None:
+                    raise ValueError
+                else:
+                    return city
         else:
-            return city
+            raise ValueError
 
 def get_users_dict():
     with sqlite3.connect('users.db') as connect:

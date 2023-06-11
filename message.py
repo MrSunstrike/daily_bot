@@ -35,7 +35,7 @@ class Message():
         psy_msg = self.create_psyhomatrix_message()
         return (
             f'Искренне рад знакомству, {utils.get_first_name(self.name)}!\n'
-            'Теперь я смогу подготавливать информацию специально для тебя, '
+            'Теперь я смогу собирать информацию специально для тебя, '
             'основываясь на твоих данных:\n'
             f'Имя: <b>{self.name}</b>\nДата рождения: <b>{self.birthdate}</b>'
             f'\nЗнак зодиака: <b>{astronum.ZODIAC_DICT[self.zodiac]}</b>\n'
