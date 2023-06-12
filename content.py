@@ -1,9 +1,11 @@
+import os
+
 import requests
 import xmltodict
-import os
 from dotenv import load_dotenv
-import astronum, utils
 from geopy.geocoders import Nominatim
+
+import astronum
 
 load_dotenv()
 
@@ -64,7 +66,10 @@ def get_weather(city):
         condition = CONDITION_DICT[
             data['forecast']['parts'][0]['condition']
         ]
-        temp_water = data['forecast']['parts'][0]['temp_water']
+        if 'temp_water' in data['forecast']['parts'][0]:
+            temp_water = data['forecast']['parts'][0]['temp_water']
+        else:
+            temp_water = None
         sunrise = data['forecast']['sunrise']
         sunset = data['forecast']['sunset']
         wind_speed = data['forecast']['parts'][0]['wind_speed']
@@ -81,6 +86,8 @@ def get_weather(city):
         }
     else:
         return None
+    
+get_weather('Подольск')
 
 def get_random_film():
     url = 'https://api.kinopoisk.dev/v1.3/movie/random'
