@@ -1,4 +1,7 @@
-import content, utils, astronum
+import astronum
+import content
+import utils
+
 
 class Message():
     def __init__(self, name, city, birthdate):

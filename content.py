@@ -86,8 +86,6 @@ def get_weather(city):
         }
     else:
         return None
-    
-get_weather('Подольск')
 
 def get_random_film():
     url = 'https://api.kinopoisk.dev/v1.3/movie/random'
