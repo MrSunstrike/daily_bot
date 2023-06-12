@@ -1,8 +1,29 @@
-import dateparser
-from geopy.geocoders import Nominatim
-import re
+import datetime
 import sqlite3
+
+import dateparser
+import pytz
+from geopy.geocoders import Nominatim
 from pymystem3 import Mystem
+
+
+def get_nsk_time():
+    now = datetime.datetime.now()
+    nsk_time = pytz.timezone('Asia/Novosibirsk')
+    nsk_now = nsk_time.localize(now)
+    return nsk_now
+
+def get_time_to_msg():
+    nsk_now = get_nsk_time()
+    target_time = pytz.timezone('Asia/Novosibirsk').localize(datetime.datetime(
+        nsk_now.year, nsk_now.month, nsk_now.day + 1, 10, 0, 0))
+    delta = target_time - nsk_now
+    h, m, _ = str(delta).split(':')
+    if 'day' in h:
+        h = h[7:]
+    if int(m[0]) == 0:
+        m = m[-1]
+    return h, m
 
 
 def standardize_birthdate(date):
