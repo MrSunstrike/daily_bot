@@ -1,13 +1,16 @@
-import telegram, telegram.ext
-from os import getenv
-from dotenv import load_dotenv
-import sqlite3
-import schedule
 import datetime
-from utils import validate_city, get_users_dict, get_first_name, standardize_birthdate, validate_name
-from message import Message
+import sqlite3
 import time
-import pytz
+from os import getenv
+
+import schedule
+import telegram
+import telegram.ext
+from dotenv import load_dotenv
+
+from message import Message
+from utils import (get_first_name, get_nsk_time, get_time_to_msg,
+                   get_users_dict, validate_city, validate_name)
 
 load_dotenv()
 
@@ -51,18 +54,14 @@ def start(update, context):
                      'разобрался')
                 return 'get_bday'
             else:
+                keyboard = [[telegram.KeyboardButton('Покажи психоматрицу')]]
+                reply_markup = telegram.ReplyKeyboardMarkup(keyboard)
                 bot.send_message(chat_id=user_id,
                         text=f'{get_first_name(name)}, вижу, мы с тобой уже '
                         'знакомы! Я продолжу присылать сообщения в 6:00 '
                         '(Мск)👍',
-                        parse_mode='HTML')
-                time.sleep(15)
-                bot.send_message(chat_id=user_id,
-                        text='На всякий случай, дублирую тебе психоматрицу👌')
-                msg = Message(name, city, birthday)
-                bot.send_message(chat_id=user_id,
-                text=msg.create_psyhomatrix_message(),
-                parse_mode='HTML')
+                        parse_mode='HTML',
+                        reply_markup=reply_markup)
         else:
             # если пользователя нет - запускаем регистрацию
             cursor.execute("INSERT INTO users (id) VALUES (?)", (user_id,))
@@ -146,7 +145,7 @@ def get_bday(update, context):
         # Пробуем преобразовать ответ пользователя в объект datetime.date
         birthday = datetime.datetime.strptime(text, '%d.%m.%Y').date()
     except ValueError:
-        # Если не получается, выводим сообщение об ошибке и переспрашиваем ввод даты
+        # Если не получается, выводим сообщение об ошибке и переспрашиваем дату
         update.message.reply_text(
             'пшшш грррр хшсссс фррргггг... Ну вот! Я же говорил, что не '
             'разберусь! Напиши, пожалуйста, именно в формате ДД.ММ.ГГГГ'
@@ -178,9 +177,12 @@ def get_bday(update, context):
                     'пришлю пример...',
                     parse_mode='HTML')
             time.sleep(25)
+            keyboard = [[telegram.KeyboardButton('Покажи психоматрицу')]]
+            reply_markup = telegram.ReplyKeyboardMarkup(keyboard)
             bot.send_message(chat_id=user_id,
                     text=msg.create_daily_message(),
-                    parse_mode='HTML')
+                    parse_mode='HTML',
+                    reply_markup=reply_markup)
             return telegram.ext.ConversationHandler.END
     
 
@@ -200,21 +202,54 @@ conv_handler = telegram.ext.ConversationHandler(
     fallbacks=[]
 )
 
+def button_handler(update, context):
+    user_id = update.effective_chat.id
+    with sqlite3.connect('users.db') as connect:
+        cursor = connect.cursor()
+        cursor.execute("SELECT * FROM users WHERE id=?", (user_id,))
+        row = cursor.fetchone()
+        name, city, birthday = row[1], row[2], row[3]
+        msg = Message(name, city, birthday)
+    text = msg.create_psyhomatrix_message()
+    update.message.reply_text(text, parse_mode='HTML')
+
+
+def echo(update, context):
+    h, m = get_time_to_msg()
+    if int(h) == 1 or int(h) == 21:
+        h_txt = 'час'
+    elif 1 < int(h) < 5 or 21 < int(h) < 25:
+        h_txt = 'часа'
+    else:
+        h_txt = 'часов'
+    if str(m)[-1] == '1':
+        m_txt = 'минуту'
+    elif 1 < int(str(m)[-1]) < 5:
+        m_txt = 'минуты'
+    else:
+        m_txt = 'минут'
+    if int(h) == 0:
+        text = f'Я отправлю тебе сообщение через {m} {m_txt}'
+    elif int(m) == 0:
+        text = f'Я отправлю тебе сообщение через {h} {h_txt}'
+    else:
+        text = f'Я отправлю тебе сообщение через {h} {h_txt} {m} {m_txt}'
+    update.message.reply_text(text)
+
+
 upd.dispatcher.add_handler(conv_handler)
 upd.start_polling()
+upd.dispatcher.add_handler(telegram.ext.MessageHandler(
+    telegram.ext.Filters.regex('^Покажи психоматрицу$'), button_handler))
+upd.dispatcher.add_handler(telegram.ext.MessageHandler(
+    telegram.ext.Filters.text & ~telegram.ext.Filters.command, echo))
 
 
 def send_message_every_day():
-
-    # Получаем текущее время
-    now = datetime.datetime.now()
-
-    # Получаем часы и минуты в Новосибирском часовом поясе
-    nsb_time = pytz.timezone('Asia/Novosibirsk')
-    nsb_now = nsb_time.localize(now)
-    nsb_hour_minute = nsb_now.strftime('%H:%M')
+    nsk_now = get_nsk_time()
+    nsk_hour_minute = nsk_now.strftime('%H:%M')
     
-    if nsb_hour_minute == '10:00':
+    if nsk_hour_minute == '10:00':
         users = get_users_dict()
         for user in users:
             msg = Message(
@@ -228,7 +263,7 @@ def send_message_every_day():
                 parse_mode='HTML'
             )
         
-# Регулярно запускаем функцию send_message_every_day() каждый день в 14:20
+# Регулярно запускаем функцию send_message_every_day() каждый день в 10:00
 schedule.every().day.at("10:00").do(send_message_every_day)
 
 # Запускаем цикл обработки заданий расписания
