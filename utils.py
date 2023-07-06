@@ -14,6 +14,8 @@ def get_nsk_time():
     return nsk_now
 
 def get_time_to_msg():
+    TEXT = ('❌<code>[ОШИБКА]: Нейромодуль не найден.</code>\nК сожалению, не '
+            'могу Вас понять. Я отправлю Вам сообщение через')
     nsk_now = get_nsk_time()
     target_time = pytz.timezone('Asia/Novosibirsk').localize(datetime.datetime(
         nsk_now.year, nsk_now.month, nsk_now.day + 1, 10, 0, 0))
@@ -23,7 +25,25 @@ def get_time_to_msg():
         h = h[7:]
     if int(m[0]) == 0:
         m = m[-1]
-    return h, m
+    if int(h) == 1 or int(h) == 21:
+        h_txt = 'час'
+    elif 1 < int(h) < 5 or 21 < int(h) < 25:
+        h_txt = 'часа'
+    else:
+        h_txt = 'часов'
+    if str(m)[-1] == '1':
+        m_txt = 'минуту'
+    elif 1 < int(str(m)[-1]) < 5:
+        m_txt = 'минуты'
+    else:
+        m_txt = 'минут'
+    if int(h) == 0:
+        text = f'{TEXT} {m} {m_txt}'
+    elif int(m) == 0:
+        text = f'{TEXT} {h} {h_txt}'
+    else:
+        text = f'{TEXT} {h} {h_txt} {m} {m_txt}'
+    return text
 
 
 def standardize_birthdate(date):
@@ -55,14 +75,20 @@ def get_users_dict():
         cursor = connect.cursor()
 
         # Получение всех чат-ид пользователей из таблицы
-        cursor.execute("SELECT DISTINCT id, name, city, birthday FROM users")
+        cursor.execute("SELECT DISTINCT id, name, city, birthday, is_blocked \
+                       FROM users")
         rows = cursor.fetchall()
 
         # Формирование словаря пользователей
         users_dict = {}
         for row in rows:
-            chat_id, name, city, birthday = row
-            user_info = {'name': name, 'city': city, 'birthday': birthday}
+            chat_id, name, city, birthday, is_blocked = row
+            user_info = {
+                'name': name,
+                'city': city,
+                'birthday': birthday,
+                'is_blocked': is_blocked
+            }
             users_dict[chat_id] = user_info
 
         # Возврат словаря пользователей
@@ -73,7 +99,7 @@ def get_first_name(fullname):
     return name
 
 def validate_name(name):
-    if len(name.split(' ')) < 3:
+    if len(name.split(' ')) != 3:
         raise ValueError
     else:
         return name
