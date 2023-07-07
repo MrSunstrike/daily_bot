@@ -19,7 +19,7 @@ from utils import (get_first_name, get_time_to_msg, get_users_dict,
 # Подгружаем токены из .env
 load_dotenv()
 
-TELEGRAM_TOKEN = getenv('TELEGRAM_TEST_BOT_API')
+TELEGRAM_TOKEN = getenv('DALE_API')
 
 # Создаем логгер
 logger = logging.getLogger('bot_logger')
@@ -198,8 +198,8 @@ def get_bday(update, context):
                 row = cursor.fetchone()
                 fullname, city, birthday = row[1], row[3], row[4]
                 end_msg = (f'Завершена регистрация пользователя:\n'
-                        f'ID - {user_id}\nФИО - {fullname}\nГород - {city}\n'
-                        f'Дата рождения - {birthday}')
+                        f'ID: {user_id}\nФИО: {fullname}\nГород: {city}\n'
+                        f'Дата рождения: {birthday}')
                 logger.info(end_msg)
             # Отправляем итоговое сообщение о завершении регистрации
             update.message.reply_text(
@@ -293,7 +293,7 @@ upd.dispatcher.add_handler(telegram.ext.MessageHandler(
 upd.start_polling()
 
 # Регулярно запускаем функцию send_message_every_day() каждый день в 10:00
-schedule.every().day.at("22:49").do(send_message_every_day)
+schedule.every().day.at("14:12").do(send_message_every_day)
 while True:
     schedule.run_pending()
     time.sleep(1)
