@@ -9,7 +9,7 @@ from pymystem3 import Mystem
 
 def get_nsk_time():
     now = datetime.datetime.now()
-    nsk_time = pytz.timezone('Asia/Novosibirsk')
+    nsk_time = pytz.timezone('Europe/Moscow')
     nsk_now = nsk_time.localize(now)
     return nsk_now
 
@@ -17,8 +17,8 @@ def get_time_to_msg():
     TEXT = ('❌<code>[ОШИБКА]: Нейромодуль не найден.</code>\nК сожалению, не '
             'могу Вас понять. Я отправлю Вам сообщение через')
     nsk_now = get_nsk_time()
-    target_time = pytz.timezone('Asia/Novosibirsk').localize(datetime.datetime(
-        nsk_now.year, nsk_now.month, nsk_now.day + 1, 10, 0, 0))
+    target_time = pytz.timezone('Europe/Moscow').localize(datetime.datetime(
+        nsk_now.year, nsk_now.month, nsk_now.day + 1, 6, 0, 0))
     delta = target_time - nsk_now
     h, m, _ = str(delta).split(':')
     if 'day' in h:
@@ -83,17 +83,20 @@ def get_users_dict():
         users_dict = {}
         for row in rows:
             chat_id, name, city, birthday, is_blocked = row
-            user_info = {
-                'name': name,
-                'city': city,
-                'birthday': birthday,
-                'is_blocked': is_blocked
-            }
-            users_dict[chat_id] = user_info
+            if birthday is None:
+                continue
+            else:
+                user_info = {
+                    'name': name,
+                    'city': city,
+                    'birthday': birthday,
+                    'is_blocked': is_blocked
+                }
+                users_dict[chat_id] = user_info
 
         # Возврат словаря пользователей
         return users_dict
-    
+
 def get_first_name(fullname):
     _, name, _ = fullname.split(' ')
     return name
