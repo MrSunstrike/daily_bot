@@ -20,6 +20,8 @@ logger.addHandler(file_handler)
 
 ERROR = '<данные не получены>'
 
+WEATHER_DB = {}
+
 DICT_NUM_SMILE = {
     1: '1⃣',
     2: '2⃣',
@@ -85,41 +87,68 @@ def get_weather(city):
         'lang': "ru_RU"
     }
     headers = {"X-Yandex-API-Key": os.getenv('X_YANDEX_API_KEY')}
-    response = requests.get(url=url, headers=headers, params=params)
-    if response.status_code == 200:
-        data = response.json()
-        parts = data.get('forecast', {}).get('parts', [])
-        if parts:
-            temp_avg = parts[0].get('temp_avg', ERROR)
-            feels_like = parts[0].get('feels_like', ERROR)
-            condition = CONDITION_DICT.get(
-                parts[0].get('condition', ERROR)
-            )
-            temp_water = parts[0].get('temp_water', ERROR)
-            sunrise = data.get('forecast', {}).get('sunrise', ERROR)
-            sunset = data.get('forecast', {}).get('sunset', ERROR)
-            wind_speed = parts[0].get('wind_speed', ERROR)
-            wind_gust = parts[0].get('wind_gust', ERROR)
-            dict_response = {
-                'temp_avg': temp_avg, # Средняя температура
-                'feels_like': feels_like, # Ощущается как
-                'condition': condition, # Описание погоды
-                'temp_water': temp_water, # Температура воды
-                'sunrise': sunrise, # Время восхода
-                'sunset': sunset, # Время заката
-                'wind_speed': wind_speed, # Скорость ветра
-                'wind_gust': wind_gust # Скорость порывов ветра
-            }
-            logger.info(f'Успешно получен контет из {url}\n'
-                        f'Контент: погода - {dict_response} в городе - {city}')
-            return dict_response
+    if city not in WEATHER_DB:
+        response = requests.get(url=url, headers=headers, params=params)
+        if response.status_code == 200:
+            data = response.json()
+            parts = data.get('forecast', {}).get('parts', [])
+            if parts:
+                temp_avg = parts[0].get('temp_avg', ERROR)
+                feels_like = parts[0].get('feels_like', ERROR)
+                condition = CONDITION_DICT.get(
+                    parts[0].get('condition', ERROR)
+                )
+                temp_water = parts[0].get('temp_water', ERROR)
+                sunrise = data.get('forecast', {}).get('sunrise', ERROR)
+                sunset = data.get('forecast', {}).get('sunset', ERROR)
+                wind_speed = parts[0].get('wind_speed', ERROR)
+                wind_gust = parts[0].get('wind_gust', ERROR)
+                dict_weather = {
+                    'temp_avg': temp_avg, # Средняя температура
+                    'feels_like': feels_like, # Ощущается как
+                    'condition': condition, # Описание погоды
+                    'temp_water': temp_water, # Температура воды
+                    'sunrise': sunrise, # Время восхода
+                    'sunset': sunset, # Время заката
+                    'wind_speed': wind_speed, # Скорость ветра
+                    'wind_gust': wind_gust # Скорость порывов ветра
+                }
+                WEATHER_DB[city] = dict_weather
+                logger.info(f'Успешно получен контет из {url}\n'
+                            f'Контент: погода - {dict_weather} в городе - '
+                            f'{city}({location})')
+                return dict_weather
+            else:
+                logger.error(f'Ошибка структуры словаря. Словарь - {data}')
+                return None
         else:
-            logger.error(f'Ошибка структуры словаря. Словарь - {data}')
-            return None
+            logger.error(f'Ошибка запроса к серверу "{url}"\n'
+                         f'Код ошибки:{response.status_code}')
+            dict_weather = {
+                'temp_avg': ERROR,
+                'feels_like': ERROR,
+                'condition': ERROR,
+                'temp_water': ERROR,
+                'sunrise': ERROR,
+                'sunset': ERROR,
+                'wind_speed': ERROR,
+                'wind_gust': ERROR,
+            }
+            return dict_weather
     else:
-        logger.error(f'Ошибка запроса к серверу "{url}"\n'
-                     f'Код ошибки:{response.status_code}')
-        return None
+        city_weather_db = WEATHER_DB.get(city)
+        dict_weather = {
+            'temp_avg': city_weather_db['temp_avg'],
+            'feels_like': city_weather_db['feels_like'],
+            'condition': city_weather_db['condition'],
+            'temp_water': city_weather_db['temp_water'],
+            'sunrise': city_weather_db['sunrise'],
+            'sunset': city_weather_db['sunset'],
+            'wind_speed': city_weather_db['wind_speed'],
+            'wind_gust': city_weather_db['wind_gust']
+        }
+        logger.info(f'Успешно переиспользована погода в городе {city}')
+        return dict_weather
 
 def get_random_film():
     url = 'https://api.kinopoisk.dev/v1.3/movie/random'

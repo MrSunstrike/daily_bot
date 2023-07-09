@@ -6,6 +6,8 @@ import pytz
 from geopy.geocoders import Nominatim
 from pymystem3 import Mystem
 
+import re
+
 
 def get_nsk_time():
     now = datetime.datetime.now()
@@ -100,9 +102,9 @@ def get_users_dict():
 def get_first_name(fullname):
     _, name, _ = fullname.split(' ')
     return name
-
+    
 def validate_name(name):
-    if len(name.split(' ')) != 3:
-        raise ValueError
-    else:
+    pattern = r'^[А-ЯЁа-яё-]{2,}\s[А-ЯЁа-яё-]{2,}\s[А-ЯЁа-яё-]{2,}$'
+    if re.match(pattern, name):
         return name
+    raise ValueError

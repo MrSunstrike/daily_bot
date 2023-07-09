@@ -4,6 +4,7 @@ import sqlite3
 import sys
 import time
 from os import getenv
+import re
 
 import schedule
 import telegram
@@ -14,6 +15,8 @@ from dotenv import load_dotenv
 from message import DICT_MSG, Message
 from utils import (get_first_name, get_time_to_msg, get_users_dict,
                    validate_city, validate_name)
+
+from content import WEATHER_DB
 
 
 # Подгружаем токены из .env
@@ -59,6 +62,7 @@ def start(update, context):
     user_id = update.effective_chat.id
     connect = sqlite3.connect('users.db')
     update.message.reply_text(text=DICT_MSG['hi'], parse_mode='HTML')
+    context.bot.send_sticker(chat_id=update.effective_chat.id, sticker='CAACAgIAAxkBAAEJpH5kqrk26qdTl0UWLDbeog8-RoAn2wACbwAD29t-AAGZW1Coe5OAdC8E')
     # Ищем в базе пользователя по chat_id
     with connect:
         cursor = connect.cursor()
@@ -173,6 +177,7 @@ def get_bday(update, context):
     '''Функция получения даты рождения и записи её в БД'''
     bday = update.message.text
     user_id = update.effective_chat.id
+    current_date = datetime.date.today()
     try:
         # Пробуем преобразовать ответ пользователя в объект datetime.date
         birthday = datetime.datetime.strptime(bday, '%d.%m.%Y').date()
@@ -185,6 +190,10 @@ def get_bday(update, context):
         if birthday > datetime.datetime.now().date():
             # Если в будущем, то запрашиваем ввод повторно
             update.message.reply_text(DICT_MSG['bday_in_future'],
+                                      parse_mode='HTML')
+            return 'get_bday'
+        elif not 6 <= current_date.year - birthday.year <= 100:
+            update.message.reply_text(DICT_MSG['bday_incorrect'],
                                       parse_mode='HTML')
             return 'get_bday'
         else:
@@ -207,6 +216,8 @@ def get_bday(update, context):
                 parse_mode='HTML',
                 reply_markup=REPLY_MARKUP
             )
+            context.bot.send_sticker(chat_id=update.effective_chat.id, sticker='CAACAgIAAxkBAAEJpIZkqrzAfNUTJvqhj5JfwKKvbcwMrAACZAAD29t-AAFfuVWO-HpEki8E')
+
             bot.send_message(
                     chat_id=786540182,
                     text=end_msg,
@@ -282,12 +293,20 @@ def send_message_every_day():
             else:
                 logger.info('Сообщение успешно отправлено пользователю: '
                             f'{users[user]["name"]}')
+    WEATHER_DB.clear()
 
-
+def thank_you_handler(update, context):
+    update.message.reply_text("Рад быть полезным!")
+    context.bot.send_sticker(chat_id=update.effective_chat.id, sticker='CAACAgIAAxkBAAEJpHxkqriX-JGw4-qgjK_FIgt0f0uLaAACbQAD29t-AAF1HuyF8vtEpS8E')
 # Регистрируем все обработчики
 upd.dispatcher.add_handler(conv_handler)
 upd.dispatcher.add_handler(telegram.ext.MessageHandler(
     telegram.ext.Filters.regex('^👤 Покажи мой профайл$'), button_handler))
+upd.dispatcher.add_handler(
+    telegram.ext.MessageHandler(telegram.ext.Filters.regex(
+        re.compile(r'\b(спасиб[о|а]|спс|благодарю)\b', re.IGNORECASE)
+        ),thank_you_handler)
+)
 upd.dispatcher.add_handler(telegram.ext.MessageHandler(
     telegram.ext.Filters.text & ~telegram.ext.Filters.command, any_msg))
 upd.start_polling()
