@@ -293,7 +293,7 @@ upd.dispatcher.add_handler(telegram.ext.MessageHandler(
 upd.start_polling()
 
 # Регулярно запускаем функцию send_message_every_day() каждый день в 10:00
-schedule.every().day.at("6:00").do(send_message_every_day)
+schedule.every().day.at("06:00").do(send_message_every_day)
 while True:
     schedule.run_pending()
     time.sleep(1)
