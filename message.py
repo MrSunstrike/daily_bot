@@ -1,6 +1,8 @@
 import astronum
 import content
 import utils
+import datetime
+from utils import name_age
 
 DICT_MSG = {
     'hi': 'Бип-бип-буп-уип! <code>[..язык загружен..]</code> Ну, то есть, '
@@ -75,6 +77,12 @@ class Message():
         self.city = city
         self.birthdate = utils.standardize_birthdate(birthdate)
         self.zodiac = astronum.get_zodiac(utils.standardize_birthdate(birthdate))
+        birthday = datetime.datetime.strptime(self.birthdate, "%d.%m.%Y")
+        today = datetime.date.today()
+        if today.month < birthday.month or (today.month == birthday.month and today.day < birthday.day):
+            self.age = name_age(today.year - birthday.year - 1)
+        else:
+            self.age = name_age(today.year - birthday.year)
 
     def create_horoscope_message(self):
         horoscope = content.get_horoscope(self.zodiac)
@@ -98,7 +106,7 @@ class Message():
         return (
             '✅<code>[УСПЕШНО]: Профайл загружен.</code>\n'
             f'<b>ФИО:</b> <i>{self.name}</i>\n'
-            f'<b>Дата рождения:</b> <i>{self.birthdate}</i>\n'
+            f'<b>Дата рождения:</b> <i>{self.birthdate} ({self.age})</i>\n'
             f'<b>Город:</b> <i>{self.city}</i>\n'
             f'<b>Знак зодиака:</b> <i>{zodiac[0]}{zodiac[1]}</i>\n\n'
             '<code>[ПСИХОАНАЛИЗ ЛИЧНОСТИ НА ОСНОВЕ НУМЕРОЛОГИИ]:</code>\n'

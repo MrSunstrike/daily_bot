@@ -108,3 +108,11 @@ def validate_name(name):
     if re.match(pattern, name):
         return name
     raise ValueError
+
+def name_age(age):
+    if age % 10 == 1 and age % 100 != 11:
+        return str(age) + " год"
+    elif age % 10 in [2, 3, 4] and age % 100 not in [12, 13, 14]:
+        return str(age) + " года"
+    else:
+        return str(age) + " лет"
