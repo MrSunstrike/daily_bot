@@ -304,7 +304,7 @@ upd.dispatcher.add_handler(telegram.ext.MessageHandler(
     telegram.ext.Filters.regex('^👤 Покажи мой профайл$'), button_handler))
 upd.dispatcher.add_handler(
     telegram.ext.MessageHandler(telegram.ext.Filters.regex(
-        re.compile(r'\b(спасиб[о|а]|спс|благодарю)\b', re.IGNORECASE)
+        re.compile(r'\b(с?паси[б|п]?[о|а]?ч?к?и?|спс|благодарю)\b', re.IGNORECASE)
         ),thank_you_handler)
 )
 upd.dispatcher.add_handler(telegram.ext.MessageHandler(
