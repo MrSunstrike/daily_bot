@@ -2,7 +2,7 @@ dateparser==1.1.8
 geopy==2.3.0
 pymystem3==0.2.0
 python-dotenv==1.0.0
-python-telegram-bot==20.3
+python-telegram-bot==13.7
 pytz==2023.3
 Requests==2.31.0
 schedule==1.2.0
