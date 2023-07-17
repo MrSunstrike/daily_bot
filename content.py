@@ -214,8 +214,8 @@ def get_psychomatrix(fullname: str, birthdate: str):
     }
 
 def get_holiday():
-    locale.setlocale(locale.LC_ALL, 'ru_RU.utf8')
+    locale.setlocale(locale.LC_ALL, 'ru_RU.UTF-8')
     today = datetime.date.today()
     string_date = today.strftime('%m-%d')
-    date = dt.ru_strftime(u"%d %B (%A)", inflected=True, date=today)
-    return f'Сегодня {date}, {HOLIDAY_DB[string_date]}\n'
+    date = dt.ru_strftime(u"%d %B <i>(%A)</i>", inflected=True, date=today)
+    return f'Сегодня {date} - <b>{HOLIDAY_DB[string_date]}</b>\n'
