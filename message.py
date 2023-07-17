@@ -177,6 +177,7 @@ class Message():
         quote = self.create_quote_message()
         film = self.create_film_message()
         horoscope = self.create_horoscope_message()
-        hi = f'Доброе утречко, {self.name}🌞 На связи Дейл🤖\n '
+        day = content.get_holiday()
+        hi = f'Доброе утречко, {self.name}🌞 На связи Дейл🤖'
         bye = 'Хорошего Вам дня😊'
-        return f'{hi}\n{weather}\n{horoscope}\n{quote}\n{film}\n{bye}'
+        return f'{hi}\n{day}\n{weather}\n{horoscope}\n{quote}\n{film}\n{bye}'

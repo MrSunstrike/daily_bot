@@ -1,10 +1,14 @@
 import os
 
+import datetime
+import locale
 import logging
 import requests
 import xmltodict
 from dotenv import load_dotenv
 from geopy.geocoders import Nominatim
+from holiday_db import HOLIDAY_DB
+from pytils import dt
 
 import astronum
 
@@ -208,3 +212,10 @@ def get_psychomatrix(fullname: str, birthdate: str):
         "date_num": DICT_NUM_SMILE[date_num],
         "date_num_desc": astronum.BIRTH_NUMBERS_DICT[date_num]
     }
+
+def get_holiday():
+    locale.setlocale(locale.LC_ALL, 'ru_RU.utf8')
+    today = datetime.date.today()
+    string_date = today.strftime('%m-%d')
+    date = dt.ru_strftime(u"%d %B (%A)", inflected=True, date=today)
+    return f'Сегодня {date}, {HOLIDAY_DB[string_date]}\n'
