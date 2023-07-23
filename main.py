@@ -9,7 +9,6 @@ import re
 import schedule
 import telegram
 import telegram.ext
-from telegram.error import Unauthorized
 from dotenv import load_dotenv
 
 from message import DICT_MSG, Message
@@ -283,7 +282,7 @@ def send_message_every_day():
                     text=msg.create_daily_message(),
                     parse_mode='HTML'
                 )
-            except Unauthorized:
+            except:
                 error_message = f"Пользователь заблокировал бота в чате {user}"
                 logger.error(error_message)
                 with sqlite3.connect('users.db') as connect:
